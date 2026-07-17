@@ -15,7 +15,7 @@ public class OrderWebMapper {
 
     public Order toDomain(CreateOrderRequest request) {
         List<OrderItem> items = request.items().stream()
-                .map(item -> new OrderItem(item.productId(), item.quantity(), item.price()))
+                .map(item -> new OrderItem(item.productId(), item.quantity(), item.price(), null))
                 .toList();
 
         return new Order(
@@ -30,7 +30,7 @@ public class OrderWebMapper {
 
     public OrderResponse toResponse(Order order) {
         List<OrderItemResponse> items = order.items().stream()
-                .map(item -> new OrderItemResponse(item.productId(), item.quantity(), item.price()))
+                .map(item -> new OrderItemResponse(item.productId(), item.quantity(), item.price(), item.reservationIdentifier()))
                 .toList();
 
         return new OrderResponse(

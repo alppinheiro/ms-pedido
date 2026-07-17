@@ -30,6 +30,7 @@ public class OrderPersistenceMapper {
                     entity.setProductId(item.productId());
                     entity.setQuantity(item.quantity());
                     entity.setPrice(item.price());
+                    entity.setReservationIdentifier(item.reservationIdentifier());
                     return entity;
                 })
                 .toList();
@@ -37,7 +38,7 @@ public class OrderPersistenceMapper {
 
     public Order toDomain(OrderEntity orderEntity, List<OrderItemEntity> items) {
         List<OrderItem> domainItems = items.stream()
-                .map(item -> new OrderItem(item.getProductId(), item.getQuantity(), item.getPrice()))
+                .map(item -> new OrderItem(item.getProductId(), item.getQuantity(), item.getPrice(), item.getReservationIdentifier()))
                 .toList();
 
         return new Order(

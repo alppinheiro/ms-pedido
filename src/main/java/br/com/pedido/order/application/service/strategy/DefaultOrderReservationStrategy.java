@@ -38,10 +38,11 @@ public class DefaultOrderReservationStrategy implements OrderReservationStrategy
     public Mono<Order> process(Order order) {
         return validateStock(order)
                 .then(reserveStock(order))
-                .then(orderRepositoryPort.updateStatus(order.orderId(), OrderStatus.RESERVED))
+                .flatMap(updatedOrder -> orderRepositoryPort.updateItems(updatedOrder).thenReturn(updatedOrder))
+                .flatMap(updatedOrder -> orderRepositoryPort.updateStatus(updatedOrder.orderId(), OrderStatus.RESERVED).thenReturn(updatedOrder))
                 // publish event to payment topic
-                .then(Mono.defer(() -> publishOrderReservedEvent(order)))
-                .thenReturn(order.withStatus(OrderStatus.RESERVED))
+                .flatMap(updatedOrder -> Mono.defer(() -> publishOrderReservedEvent(updatedOrder)).thenReturn(updatedOrder))
+                .map(updatedOrder -> updatedOrder.withStatus(OrderStatus.RESERVED))
                 .doOnNext(updatedOrder -> orderStatusNotifier.notifyObservers(updatedOrder, OrderStatus.PENDING, OrderStatus.RESERVED))
                 .onErrorResume(throwable -> markAsFailed(order).then(Mono.error(throwable)));
     }
@@ -94,10 +95,12 @@ public class DefaultOrderReservationStrategy implements OrderReservationStrategy
                 });
     }
 
-    private Mono<Void> reserveStock(Order order) {
+    private Mono<Order> reserveStock(Order order) {
         return Flux.fromIterable(order.items())
-                .concatMap(item -> stockGatewayPort.reserve(item.productId(), item.quantity()))
-                .then();
+                .concatMap(item -> stockGatewayPort.reserve(item.productId(), item.quantity())
+                        .map(item::withReservationIdentifier))
+                .collectList()
+                .map(order::withItems);
     }
 
     private Mono<Void> markAsFailed(Order order) {

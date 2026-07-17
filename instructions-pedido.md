@@ -123,3 +123,26 @@ Logs estruturados por orderId/eventId.
 Endpoint/monitor para saúde de consumidores e lag básico.
 Atualizar README/Postman com fluxo assíncrono ponta a ponta.
 Entregável: operação e troubleshooting facilitados.
+
+# Ajuste ao realizar reserva e baixa no estoque
+Ao realizar a reserva no estoque agora será retornado um campo chamado reservationIdentifier.
+Esse valor deverá ser armazenado no banco de dados junto com os items do pedido, para que posteriormente seja possível realizar a baixa no estoque utilizando esse reservationIdentifier.
+# Payload do response da reserva no estoque
+```json
+{
+  "stockBalance": {
+    "productId": 2,
+    "total": 1000,
+    "reserved": 8,
+    "available": 992
+  },
+  "reservationIdentifier": "684bf3dc-dfad-4211-a4ee-5d08d7039e23"
+}
+```
+# Payload da request da reserva no estoque
+```json
+{
+  "quantity": 1,
+  "reservationIdentifier": "{{reservationIdentifier}}"
+}
+```

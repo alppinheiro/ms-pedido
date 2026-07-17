@@ -15,5 +15,9 @@ public record Order(
     public Order withStatus(OrderStatus nextStatus) {
         return new Order(orderId, customerId, orderDate, items, totalAmount, nextStatus);
     }
+
+    public Order withItems(List<OrderItem> newItems) {
+        return new Order(orderId, customerId, orderDate, newItems, totalAmount, status);
+    }
 }
 

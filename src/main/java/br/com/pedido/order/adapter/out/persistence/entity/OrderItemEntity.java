@@ -25,6 +25,9 @@ public class OrderItemEntity {
     @Column("price")
     private BigDecimal price;
 
+    @Column("reservation_identifier")
+    private String reservationIdentifier;
+
     public Long getId() {
         return id;
     }
@@ -63,6 +66,14 @@ public class OrderItemEntity {
 
     public void setPrice(BigDecimal price) {
         this.price = price;
+    }
+
+    public String getReservationIdentifier() {
+        return reservationIdentifier;
+    }
+
+    public void setReservationIdentifier(String reservationIdentifier) {
+        this.reservationIdentifier = reservationIdentifier;
     }
 }
 

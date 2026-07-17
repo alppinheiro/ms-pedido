@@ -1,6 +1,7 @@
 package br.com.pedido.order.adapter.out.stock;
 
 import br.com.pedido.order.adapter.out.stock.dto.StockReservationRequest;
+import br.com.pedido.order.adapter.out.stock.dto.StockReservationResponse;
 import br.com.pedido.order.application.port.out.StockGatewayPort;
 import br.com.pedido.order.domain.exception.StockServiceUnavailableException;
 import org.springframework.beans.factory.annotation.Value;
@@ -58,19 +59,19 @@ public class StockGatewayAdapter implements StockGatewayPort {
     }
 
     @Override
-    public Mono<Void> reserve(String productId, Integer quantity) {
+    public Mono<String> reserve(String productId, Integer quantity) {
         log.info("[StockGateway] Calling reserve for product={} quantity={}, circuit='{}' state='{}'",
                 productId, quantity, circuitBreaker.getName(), circuitBreaker.getState());
 
         return webClient.post()
                 .uri("/api/products/{productId}/stock/reservations", productId)
-                .bodyValue(new StockReservationRequest(quantity))
+                .bodyValue(new StockReservationRequest(quantity, null))
                 .retrieve()
-                .toBodilessEntity()
-                .then()
+                .bodyToMono(StockReservationResponse.class)
+                .map(StockReservationResponse::reservationIdentifier)
                 .transformDeferred(CircuitBreakerOperator.of(circuitBreaker))
-                .doOnSuccess(v -> log.info("[StockGateway] reserve succeeded for product={} circuit='{}' state='{}'",
-                        productId, circuitBreaker.getName(), circuitBreaker.getState()))
+                .doOnSuccess(id -> log.info("[StockGateway] reserve succeeded for product={}, identifier={}, circuit='{}' state='{}'",
+                        productId, id, circuitBreaker.getName(), circuitBreaker.getState()))
                 // propagate a meaningful error when reservation cannot be completed
                 .onErrorMap(throwable -> {
                     log.warn("[StockGateway] reserve failed for product={} circuit='{}' state='{}' - {}",
@@ -84,13 +85,13 @@ public class StockGatewayAdapter implements StockGatewayPort {
     }
 
     @Override
-    public Mono<Void> commit(String productId, Integer quantity) {
-        log.info("[StockGateway] Calling commit for product={} quantity={}, circuit='{}' state='{}'",
-                productId, quantity, circuitBreaker.getName(), circuitBreaker.getState());
+    public Mono<Void> commit(String productId, Integer quantity, String reservationIdentifier) {
+        log.info("[StockGateway] Calling commit for product={} quantity={} reservationIdentifier={}, circuit='{}' state='{}'",
+                productId, quantity, reservationIdentifier, circuitBreaker.getName(), circuitBreaker.getState());
 
         return webClient.post()
                 .uri("/api/products/{productId}/stock/outbound", productId)
-                .bodyValue(new StockReservationRequest(quantity))
+                .bodyValue(new StockReservationRequest(quantity, reservationIdentifier))
                 .retrieve()
                 .toBodilessEntity()
                 .then()

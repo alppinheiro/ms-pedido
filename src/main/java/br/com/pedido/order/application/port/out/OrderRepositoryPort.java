@@ -10,6 +10,8 @@ public interface OrderRepositoryPort {
 
     Mono<Order> save(Order order);
 
+    Mono<Void> updateItems(Order order);
+
     Mono<Void> updateStatus(String orderId, OrderStatus status);
 
     Flux<Order> findByFilters(OrderStatus status, String orderId);

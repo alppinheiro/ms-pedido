@@ -42,6 +42,21 @@ public class OrderRepositoryAdapter implements OrderRepositoryPort {
     }
 
     @Override
+    public Mono<Void> updateItems(Order order) {
+        return orderItemR2dbcRepository.findByOrderId(order.orderId())
+                .collectList()
+                .flatMap(existingEntities -> {
+                    existingEntities.forEach(entity -> {
+                        order.items().stream()
+                                .filter(i -> i.productId().equals(entity.getProductId()))
+                                .findFirst()
+                                .ifPresent(domainItem -> entity.setReservationIdentifier(domainItem.reservationIdentifier()));
+                    });
+                    return orderItemR2dbcRepository.saveAll(existingEntities).then();
+                });
+    }
+
+    @Override
     public Mono<Void> updateStatus(String orderId, OrderStatus status) {
         return orderR2dbcRepository.findByOrderId(orderId)
                 .flatMap(existing -> {

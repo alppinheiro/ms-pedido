@@ -5,7 +5,11 @@ import java.math.BigDecimal;
 public record OrderItem(
         String productId,
         Integer quantity,
-        BigDecimal price
+        BigDecimal price,
+        String reservationIdentifier
 ) {
+    public OrderItem withReservationIdentifier(String reservationIdentifier) {
+        return new OrderItem(productId, quantity, price, reservationIdentifier);
+    }
 }
 

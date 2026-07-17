@@ -48,18 +48,28 @@ public class PaymentProcessedListener {
             log.info("[PaymentListener] payment status for order={} status={}", orderId, event.status());
 
             // Idempotency / state guard: only process when order is RESERVED
+            log.info("[PaymentListener] querying database for orderId={}", orderId);
             orderRepositoryPort.findByFilters(null, orderId)
                     .next()
+                    .switchIfEmpty(reactor.core.publisher.Mono.defer(() -> {
+                        log.warn("[PaymentListener] order {} not found in database, skipping payment event", orderId);
+                        return reactor.core.publisher.Mono.empty();
+                    }))
                     .flatMap(order -> {
+                        log.info("[PaymentListener] order {} found in database, status={}", orderId, order.status());
                         if (order.status() == null || order.status() != OrderStatus.RESERVED) {
                             log.info("[PaymentListener] order {} not in RESERVED state (current={}), skipping processing", orderId, order.status());
                             return reactor.core.publisher.Mono.empty();
                         }
 
                         if ("PAID".equalsIgnoreCase(event.status())) {
+                            log.info("[PaymentListener] processing PAID event for order {}, items count: {}", orderId, order.items() != null ? order.items().size() : 0);
                             // commit stock for each item
                             return Flux.fromIterable(order.items())
-                                    .concatMap(item -> stockGatewayPort.commit(item.productId(), item.quantity()))
+                                    .concatMap(item -> {
+                                        log.info("[PaymentListener] calling commit for product={} qty={} reservation={}", item.productId(), item.quantity(), item.reservationIdentifier());
+                                        return stockGatewayPort.commit(item.productId(), item.quantity(), item.reservationIdentifier());
+                                    })
                                     .then(orderRepositoryPort.updateStatus(orderId, OrderStatus.COMPLETED))
                                     .doOnSuccess(v -> log.info("[PaymentListener] order {} completed and stock committed", orderId));
                         } else {
@@ -71,7 +81,7 @@ public class PaymentProcessedListener {
                         }
                     })
                     .doOnError(e -> log.error("[PaymentListener] error processing payment event for order {}: {}", envelope.partitionKey(), e.toString()))
-                    .subscribe();
+                    .block();
 
         } catch (Exception e) {
             log.error("[PaymentListener] failed to handle message: {}", e.toString());
