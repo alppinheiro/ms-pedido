@@ -1,0 +1,112 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: pedido-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - pedido_postgres_data:/var/lib/postgresql/data
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.0
+    container_name: pedido-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    volumes:
+      - zookeeper_data:/var/lib/zookeeper/data
+      - zookeeper_log:/var/lib/zookeeper/log
+
+  kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    container_name: pedido-kafka
+    environment:
+      # Use a stable broker id for local development. If you change this value,
+      # make sure to remove/clear the kafka_data volume to avoid InconsistentBrokerIdException.
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+
+      # Listen on all interfaces and advertise both the internal container
+      # hostname (kafka) for other containers and localhost for host-based clients.
+      # Two listeners: internal for container-to-container traffic, external for host clients
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:9092,EXTERNAL://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:9092,EXTERNAL://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      CONFLUENT_SUPPORT_METRICS_ENABLE: 'false'
+    ports:
+      # map host 9092 -> container EXTERNAL listener at 9093
+      - "9092:9093"
+    depends_on:
+      - zookeeper
+    healthcheck:
+      test: ["CMD", "bash", "-c", "kafka-broker-api-versions --bootstrap-server localhost:9092 >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+      - kafka_secrets:/etc/kafka/secrets
+
+  kafka-init:
+    image: confluentinc/cp-kafka:7.4.0
+    container_name: pedido-kafka-init
+    depends_on:
+      kafka:
+        condition: service_healthy
+    entrypoint: ["bash","-c","kafka-topics --bootstrap-server kafka:9092 --create --topic order-payment --partitions 1 --replication-factor 1 || true; kafka-topics --bootstrap-server kafka:9092 --create --topic payment-order --partitions 1 --replication-factor 1 || true; sleep 1"]
+    restart: "no"
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: pedido-kafka-ui
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+    ports:
+      - "8085:8080"
+    depends_on:
+      - kafka
+
+#  pedido:
+#    build:
+#      context: .
+#      dockerfile: Dockerfile
+#    container_name: pedido-app
+#    env_file:
+#      - .env
+#    depends_on:
+#      postgres:
+#        condition: service_healthy
+#    environment:
+#      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
+#      APP_PORT: ${APP_PORT}
+#      STOCK_BASE_URL: ${STOCK_BASE_URL}
+#      POSTGRES_DB: ${POSTGRES_DB}
+#      POSTGRES_USER: ${POSTGRES_USER}
+#      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+#      POSTGRES_PORT: ${POSTGRES_PORT}
+#    ports:
+#      - "${APP_PORT}:8080"
+
+volumes:
+  pedido_postgres_data:
+  kafka_data:
+  kafka_secrets:
+  zookeeper_data:
+  zookeeper_log:
+

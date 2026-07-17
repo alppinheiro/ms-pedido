@@ -1,0 +1,131 @@
+{
+  "info": {
+    "_postman_id": "1fba4d4f-0ef2-4b74-9516-3d98b9f0671c",
+    "name": "Pedido API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Colecao com os endpoints disponiveis da aplicacao pedido."
+  },
+  "item": [
+    {
+      "name": "Criar pedido",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"orderId\": \"ORDER-001\",\n  \"customerId\": \"CUSTOMER-123\",\n  \"orderDate\": \"2024-06-15T10:30:00Z\",\n  \"items\": [\n    {\n      \"productId\": \"SKU-001\",\n      \"quantity\": 2,\n      \"price\": 5.90\n    },\n    {\n      \"productId\": \"SKU-002\",\n      \"quantity\": 1,\n      \"price\": 12.50\n    }\n  ],\n  \"totalAmount\": 24.30\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/orders",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "orders"
+          ]
+        },
+        "description": "curl --request POST '{{baseUrl}}/api/orders' \\\n--header 'Content-Type: application/json' \\\n--data '{\n  \"orderId\": \"ORDER-001\",\n  \"customerId\": \"CUSTOMER-123\",\n  \"orderDate\": \"2024-06-15T10:30:00Z\",\n  \"items\": [\n    {\n      \"productId\": \"SKU-001\",\n      \"quantity\": 2,\n      \"price\": 5.90\n    },\n    {\n      \"productId\": \"SKU-002\",\n      \"quantity\": 1,\n      \"price\": 12.50\n    }\n  ],\n  \"totalAmount\": 24.30\n}'"
+      },
+      "response": []
+    },
+    {
+      "name": "Listar pedidos",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/orders",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "orders"
+          ]
+        },
+        "description": "curl --request GET '{{baseUrl}}/api/orders'"
+      },
+      "response": []
+    },
+    {
+      "name": "Listar pedidos com filtros",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/orders?status=PENDING&orderId=ORDER-001",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "orders"
+          ],
+          "query": [
+            {
+              "key": "status",
+              "value": "PENDING"
+            },
+            {
+              "key": "orderId",
+              "value": "ORDER-001"
+            }
+          ]
+        },
+        "description": "curl --request GET '{{baseUrl}}/api/orders?status=PENDING&orderId=ORDER-001'"
+      },
+      "response": []
+    },
+    {
+      "name": "OpenAPI JSON",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/v3/api-docs",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "v3",
+            "api-docs"
+          ]
+        },
+        "description": "curl --request GET '{{baseUrl}}/v3/api-docs'"
+      },
+      "response": []
+    },
+    {
+      "name": "Swagger UI",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/swagger-ui/index.html",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "swagger-ui",
+            "index.html"
+          ]
+        },
+        "description": "curl --request GET '{{baseUrl}}/swagger-ui/index.html'"
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    }
+  ]
+}
+
